@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sing-box 全局代理管理系统 - 演示</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 15px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: clamp(1.8rem, 4vw, 2.5rem);
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            opacity: 0.9;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .card:hover::before {
+            opacity: 1;
+        }
+        
+        .card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            border-color: rgba(102, 126, 234, 0.3);
+        }
+        
+        .card:active {
+            transform: translateY(-4px) scale(1.01);
+            transition: all 0.1s ease;
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: clamp(1.1rem, 2.5vw, 1.3rem);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .card h3::before {
+            content: "🚀";
+            margin-right: 10px;
+            font-size: 1.2em;
+            flex-shrink: 0;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 25px;
+            font-size: clamp(10px, 2vw, 12px);
+            font-weight: 600;
+            margin-right: 8px;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .status-indicator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(255,255,255,0.2), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .status-indicator:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .status-running {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+        
+        .status-running::after {
+            content: '●';
+            animation: pulse 2s infinite;
+            font-size: 8px;
+        }
+        
+        .status-stopped {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        }
+        
+        .status-stopped::after {
+            content: '●';
+            opacity: 0.7;
+            font-size: 8px;
+        }
+        
+        .status-indicator:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 3px;
+            flex: 1;
+            min-width: 100px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            position: relative;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            filter: brightness(1.1);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.1s ease;
+        }
+        
+        .btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+            filter: none;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #f44336 0%, #da190b 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: auto;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: white;
+            box-sizing: border-box;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+        
+        .form-input:hover {
+            border-color: #c1c9d2;
+        }
+        
+        .form-input.valid {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.05);
+        }
+        
+        .form-input.invalid {
+            border-color: #f44336;
+            background: rgba(244, 67, 54, 0.05);
+            animation: shake 0.5s ease-in-out;
+        }
+        
+        .input-feedback {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            min-height: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .input-feedback.success {
+            color: #4CAF50;
+        }
+        
+        .input-feedback.error {
+            color: #f44336;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        
+        .config-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .config-item:last-child {
+            border-bottom: none;
+        }
+        
+        .config-item span:first-child {
+            font-weight: 500;
+            min-width: 100px;
+        }
+        
+        .config-item span:last-child {
+            text-align: right;
+            word-break: break-all;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 6px 0;
+            display: flex;
+            align-items: center;
+            font-size: clamp(0.85rem, 2vw, 1rem);
+        }
+        
+        .feature-list li::before {
+            content: "✅";
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            opacity: 0.8;
+            font-size: clamp(0.8rem, 2vw, 1rem);
+        }
+        
+        .footer a {
+            color: #fff;
+            text-decoration: none;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            transition: border-color 0.3s ease;
+        }
+        
+        .footer a:hover {
+            border-bottom-color: #fff;
+        }
+        
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: clamp(0.85rem, 2vw, 1rem);
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        
+        /* 响应式媒体查询 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .dashboard {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .card {
+                padding: 15px;
+                min-height: auto;
+            }
+            
+            .config-item {
+                flex-direction: column;
+                align-items: flex-start;
+                text-align: left;
+            }
+            
+            .config-item span:last-child {
+                text-align: left;
+                margin-top: 5px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                margin: 2px 0;
+                padding: 12px 16px;
+            }
+            
+            .header {
+                margin-bottom: 20px;
+            }
+            
+            .footer {
+                margin-top: 20px;
+                padding: 0 10px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .card h3 {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+            
+            .card h3::before {
+                margin-right: 0;
+            }
+            
+            .config-section {
+                padding: 15px;
+            }
+            
+            .alert {
+                padding: 10px;
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            .dashboard {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        /* 高对比度模式支持 */
+        @media (prefers-contrast: high) {
+            .card {
+                border: 2px solid #333;
+            }
+            
+            .btn {
+                border: 2px solid #fff;
+            }
+        }
+        
+        /* 性能优化相关样式 */
+        
+        /* 减少动画的性能影响 */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+            
+            .card::before,
+            .btn::before,
+            .status-indicator::after {
+                display: none !important;
+            }
+        }
+        
+        /* 懒加载元素样式 */
+        [data-lazy] {
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        [data-lazy].loaded {
+            opacity: 1;
+        }
+        
+        /* 移动端性能优化 */
+        .mobile-layout .card {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mobile-layout .btn::before {
+            display: none;
+        }
+        
+        /* GPU加速优化 */
+        .card,
+        .btn,
+        .status-indicator {
+            will-change: transform;
+            transform: translateZ(0);
+        }
+        
+        /* 减少重绘和回流 */
+        .notification {
+            contain: layout style paint;
+        }
+        
+        .progress-bar {
+            contain: layout style paint;
+        }
+        
+        /* 滚动性能优化 */
+        .container {
+            scroll-behavior: smooth;
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            .container {
+                scroll-behavior: auto;
+            }
+        }
+        
+        /* 内容可见性优化 */
+        .card:not(.visible) {
+            content-visibility: auto;
+            contain-intrinsic-size: 300px;
+        }
+        
+        /* 减少动画模式支持 */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* 可访问性样式 */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: #000;
+            color: #fff;
+            padding: 8px;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1000;
+            transition: top 0.3s;
+        }
+        
+        .skip-link:focus {
+            top: 6px;
+        }
+        
+        /* 键盘导航支持 */
+        .btn:focus,
+        .form-input:focus,
+        .status-indicator:focus {
+            outline: 3px solid #667eea;
+            outline-offset: 2px;
+        }
+        
+        /* 高对比度模式增强 */
+        @media (prefers-contrast: high) {
+            .card {
+                border: 3px solid #000;
+                background: #fff;
+            }
+            
+            .btn {
+                border: 2px solid #000;
+                font-weight: bold;
+            }
+            
+            .status-indicator {
+                border: 2px solid #000;
+            }
+        }
+        
+        /* 屏幕阅读器专用样式 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        
+        /* 焦点指示器增强 */
+        .card:focus-within {
+            outline: 2px solid #667eea;
+            outline-offset: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 跳转链接 -->
+        <a href="#main-content" class="skip-link">跳转到主要内容</a>
+        
+        <header class="header" role="banner">
+            <h1 id="main-title">🌐 Sing-box 全局代理管理系统</h1>
+            <p id="main-description">基于 sing-box 内核和 zashboard 面板的全局代理服务管理方案</p>
+        </header>
+        
+        <div class="alert alert-info" role="alert" aria-live="polite">
+            <strong>演示模式</strong> - 这是项目功能的演示界面。在实际部署中，此界面将连接到真实的sing-box服务。
+        </div>
+        
+        <main id="main-content" class="dashboard" role="main" aria-labelledby="main-title" aria-describedby="main-description">
+            <div class="card" tabindex="0" role="region" aria-labelledby="service-status-title">
+                <h3 id="service-status-title">🔧 服务状态</h3>
+                <div class="config-item" role="status">
+                    <span>Sing-box 服务</span>
+                    <span><span class="status-indicator status-running" role="img" aria-label="运行中" tabindex="0"><span class="sr-only">Sing-box 服务状态：运行中</span></span>运行中</span>
+                </div>
+                <div class="config-item" role="status">
+                    <span>Nginx 服务</span>
+                    <span><span class="status-indicator status-running" role="img" aria-label="运行中" tabindex="0"><span class="sr-only">Nginx 服务状态：运行中</span></span>运行中</span>
+                </div>
+                <div class="config-item">
+                    <span>代理端口</span>
+                    <span>7890</span>
+                </div>
+                <div class="config-item">
+                    <span>API 端口</span>
+                    <span>9090</span>
+                </div>
+                <div class="btn-group" role="group" aria-label="服务控制操作">
+                    <button class="btn btn-success" onclick="showAlert('服务启动成功')" aria-describedby="service-status-title">启动服务</button>
+                    <button class="btn btn-danger" onclick="showAlert('服务已停止')" aria-describedby="service-status-title">停止服务</button>
+                    <button class="btn btn-warning" onclick="showAlert('服务重启完成')" aria-describedby="service-status-title">重启服务</button>
+                </div>
+            </div>
+            
+            <div class="card" tabindex="0" role="region" aria-labelledby="system-info-title">
+                <h3 id="system-info-title">📊 系统信息</h3>
+                <div class="config-item">
+                    <span>系统版本</span>
+                    <span>Ubuntu 20.04 LTS</span>
+                </div>
+                <div class="config-item">
+                    <span>内核版本</span>
+                    <span>sing-box v1.8.0</span>
+                </div>
+                <div class="config-item">
+                    <span>运行时间</span>
+                    <span id="uptime" aria-live="polite">2天 14小时 32分钟</span>
+                </div>
+                <div class="config-item">
+                    <span>内存使用</span>
+                    <span>156MB / 2GB</span>
+                </div>
+                <div class="btn-group" role="group" aria-label="系统管理操作">
+                    <button class="btn" onclick="showAlert('系统信息已刷新')" aria-describedby="system-info-title">刷新信息</button>
+                    <button class="btn" onclick="showAlert('性能优化完成')" aria-describedby="system-info-title">性能优化</button>
+                </div>
+            </div>
+            
+            <div class="card" tabindex="0" role="region" aria-labelledby="proxy-nodes-title">
+                <h3 id="proxy-nodes-title">🔗 代理节点</h3>
+                <div class="config-item">
+                    <span>总节点数</span>
+                    <span>12</span>
+                </div>
+                <div class="config-item">
+                    <span>可用节点</span>
+                    <span>10</span>
+                </div>
+                <div class="config-item">
+                    <span>当前节点</span>
+                    <span>🇺🇸 美国-洛杉矶</span>
+                </div>
+                <div class="config-item">
+                    <span>延迟</span>
+                    <span aria-live="polite">45ms</span>
+                </div>
+                <div class="btn-group" role="group" aria-label="节点管理操作">
+                    <button class="btn" onclick="showAlert('节点测试完成')" aria-describedby="proxy-nodes-title">测试节点</button>
+                    <button class="btn" onclick="showAlert('订阅更新完成')" aria-describedby="proxy-nodes-title">更新订阅</button>
+                </div>
+            </div>
+            
+            <div class="card" tabindex="0" role="region" aria-labelledby="quick-actions-title">
+                <h3 id="quick-actions-title">⚙️ 快速操作</h3>
+                <div class="quick-config" style="margin-bottom: 15px;" role="form" aria-labelledby="quick-actions-title">
+                    <div class="input-group">
+                        <label for="proxy-port">代理端口:</label>
+                        <input type="number" id="proxy-port" placeholder="7890" min="1024" max="65535" class="form-input" aria-describedby="proxy-port-feedback" aria-required="false">
+                        <span class="input-feedback" id="proxy-port-feedback" aria-live="polite"></span>
+                    </div>
+                    <div class="input-group">
+                        <label for="api-port">API端口:</label>
+                        <input type="number" id="api-port" placeholder="9090" min="1024" max="65535" class="form-input" aria-describedby="api-port-feedback" aria-required="false">
+                        <span class="input-feedback" id="api-port-feedback" aria-live="polite"></span>
+                    </div>
+                </div>
+                <div class="btn-group" style="flex-direction: column;" role="group" aria-label="快速操作按钮">
+                    <button class="btn" onclick="showAlert('配置文件已生成')" aria-describedby="quick-actions-title">生成配置</button>
+                    <button class="btn" onclick="showAlert('备份创建完成')" aria-describedby="quick-actions-title">创建备份</button>
+                    <button class="btn" onclick="showAlert('日志已清理')" aria-describedby="quick-actions-title">清理日志</button>
+                    <button class="btn" onclick="showAlert('安全加固完成')" aria-describedby="quick-actions-title">安全加固</button>
+                    <button class="btn" onclick="showAlert('系统更新完成')" aria-describedby="quick-actions-title">系统更新</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="config-section">
+            <h3 style="color: #667eea; margin-bottom: 20px;">🎯 功能特性</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                <ul class="feature-list">
+                    <li>一键自动安装 sing-box</li>
+                    <li>智能配置管理</li>
+                    <li>订阅链接自动更新</li>
+                    <li>安全加固配置</li>
+                </ul>
+                <ul class="feature-list">
+                    <li>性能优化工具</li>
+                    <li>用户友好界面</li>
+                    <li>完整测试套件</li>
+                    <li>多平台支持</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="config-section">
+            <h3 style="color: #667eea; margin-bottom: 20px;">📋 配置信息</h3>
+            <div class="config-item">
+                <span>配置文件路径</span>
+                <span>/etc/sing-box/config.json</span>
+            </div>
+            <div class="config-item">
+                <span>日志文件路径</span>
+                <span>/var/log/sing-box/sing-box.log</span>
+            </div>
+            <div class="config-item">
+                <span>面板地址</span>
+                <span>http://localhost:80</span>
+            </div>
+            <div class="config-item">
+                <span>API 地址</span>
+                <span>http://localhost:9090</span>
+            </div>
+            <div class="config-item">
+                <span>代理地址</span>
+                <span>http://localhost:7890</span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>© 2024 Sing-box 全局代理管理系统 | 基于 MIT 许可证开源</p>
+            <p>项目地址: <a href="#" style="color: #fff;">GitHub Repository</a></p>
+        </div>
+    </div>
+    
+    <script>
+        // 通知系统
+        class NotificationSystem {
+            constructor() {
+                this.createNotificationContainer();
+            }
+            
+            createNotificationContainer() {
+                if (document.getElementById('notification-container')) return;
+                
+                const container = document.createElement('div');
+                container.id = 'notification-container';
+                container.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 1000;
+                    max-width: 350px;
+                `;
+                document.body.appendChild(container);
+            }
+            
+            show(message, type = 'info', duration = 3000) {
+                const notification = document.createElement('div');
+                notification.className = `notification notification-${type}`;
+                
+                const colors = {
+                    success: '#4CAF50',
+                    error: '#f44336',
+                    warning: '#ff9800',
+                    info: '#2196F3'
+                };
+                
+                notification.style.cssText = `
+                    background: ${colors[type]};
+                    color: white;
+                    padding: 12px 16px;
+                    margin-bottom: 10px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    transform: translateX(100%);
+                    transition: transform 0.3s ease;
+                    font-size: 14px;
+                    line-height: 1.4;
+                    position: relative;
+                    cursor: pointer;
+                `;
+                
+                notification.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 16px;">${this.getIcon(type)}</span>
+                        <span>${message}</span>
+                        <span style="margin-left: auto; opacity: 0.7; font-size: 18px;">&times;</span>
+                    </div>
+                `;
+                
+                const container = document.getElementById('notification-container');
+                container.appendChild(notification);
+                
+                // 动画显示
+                setTimeout(() => {
+                    notification.style.transform = 'translateX(0)';
+                }, 10);
+                
+                // 点击关闭
+                notification.addEventListener('click', () => {
+                    this.remove(notification);
+                });
+                
+                // 自动关闭
+                if (duration > 0) {
+                    setTimeout(() => {
+                        this.remove(notification);
+                    }, duration);
+                }
+                
+                return notification;
+            }
+            
+            getIcon(type) {
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️',
+                    info: 'ℹ️'
+                };
+                return icons[type] || icons.info;
+            }
+            
+            remove(notification) {
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }
+        
+        // 加载状态管理
+        class LoadingManager {
+            constructor() {
+                this.activeLoaders = new Set();
+            }
+            
+            show(element, text = '加载中...') {
+                if (this.activeLoaders.has(element)) return;
+                
+                const originalContent = element.innerHTML;
+                const originalDisabled = element.disabled;
+                
+                element.disabled = true;
+                element.innerHTML = `
+                    <span style="display: inline-flex; align-items: center; gap: 8px;">
+                        <span class="spinner" style="
+                            width: 16px;
+                            height: 16px;
+                            border: 2px solid rgba(255,255,255,0.3);
+                            border-top: 2px solid white;
+                            border-radius: 50%;
+                            animation: spin 1s linear infinite;
+                        "></span>
+                        ${text}
+                    </span>
+                `;
+                
+                this.activeLoaders.add(element);
+                element._originalContent = originalContent;
+                element._originalDisabled = originalDisabled;
+            }
+            
+            hide(element) {
+                if (!this.activeLoaders.has(element)) return;
+                
+                element.innerHTML = element._originalContent;
+                element.disabled = element._originalDisabled;
+                this.activeLoaders.delete(element);
+            }
+        }
+        
+        // 进度条组件
+        class ProgressBar {
+            constructor(container) {
+                this.container = container;
+                this.element = null;
+            }
+            
+            create(text = '处理中...') {
+                if (this.element) return;
+                
+                this.element = document.createElement('div');
+                this.element.style.cssText = `
+                    margin: 10px 0;
+                    padding: 10px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                `;
+                
+                this.element.innerHTML = `
+                    <div style="margin-bottom: 8px; font-size: 14px; color: white;">${text}</div>
+                    <div style="
+                        width: 100%;
+                        height: 6px;
+                        background: rgba(255,255,255,0.2);
+                        border-radius: 3px;
+                        overflow: hidden;
+                    ">
+                        <div class="progress-fill" style="
+                            width: 0%;
+                            height: 100%;
+                            background: linear-gradient(90deg, #4CAF50, #45a049);
+                            border-radius: 3px;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                    <div class="progress-text" style="
+                        margin-top: 5px;
+                        font-size: 12px;
+                        color: rgba(255,255,255,0.8);
+                    ">0%</div>
+                `;
+                
+                this.container.appendChild(this.element);
+            }
+            
+            update(percent, text) {
+                if (!this.element) return;
+                
+                const fill = this.element.querySelector('.progress-fill');
+                const textEl = this.element.querySelector('.progress-text');
+                
+                fill.style.width = `${percent}%`;
+                textEl.textContent = text || `${percent}%`;
+            }
+            
+            remove() {
+                if (this.element && this.element.parentNode) {
+                    this.element.parentNode.removeChild(this.element);
+                    this.element = null;
+                }
+            }
+        }
+        
+        // 全局实例
+        const notifications = new NotificationSystem();
+        const loadingManager = new LoadingManager();
+        
+        // 增强的操作函数
+        function showAlert(message) {
+            notifications.show(message, 'success');
+        }
+        
+        function simulateOperation(button, operation) {
+            loadingManager.show(button, '处理中...');
+            
+            // 模拟异步操作
+            setTimeout(() => {
+                loadingManager.hide(button);
+                
+                const messages = {
+                    '服务启动成功': { text: '服务启动成功！', type: 'success' },
+                    '服务已停止': { text: '服务已停止', type: 'warning' },
+                    '服务重启完成': { text: '服务重启完成', type: 'success' },
+                    '系统信息已刷新': { text: '系统信息已刷新', type: 'info' },
+                    '性能优化完成': { text: '性能优化完成', type: 'success' },
+                    '节点测试完成': { text: '节点测试完成，延迟: 45ms', type: 'success' },
+                    '订阅更新完成': { text: '订阅更新完成，新增3个节点', type: 'success' },
+                    '配置文件已生成': { text: '配置文件已生成', type: 'success' },
+                    '备份创建完成': { text: '备份创建完成', type: 'success' },
+                    '日志已清理': { text: '日志已清理', type: 'info' },
+                    '安全加固完成': { text: '安全加固完成', type: 'success' },
+                    '系统更新完成': { text: '系统更新完成', type: 'success' }
+                };
+                
+                const msg = messages[operation] || { text: operation, type: 'info' };
+                notifications.show(msg.text, msg.type);
+            }, 1000 + Math.random() * 1000);
+        }
+        
+        // 模拟实时更新运行时间
+        function updateUptime() {
+            const uptimeElement = document.getElementById('uptime');
+            if (uptimeElement) {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const seconds = now.getSeconds();
+                uptimeElement.textContent = `2天 ${hours}小时 ${minutes}分钟 ${seconds}秒`;
+            }
+        }
+        
+        // 添加CSS动画
+        function addAnimations() {
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(20px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+                
+                .card {
+                    animation: fadeIn 0.6s ease-out;
+                }
+                
+                .card:nth-child(1) { animation-delay: 0.1s; }
+                .card:nth-child(2) { animation-delay: 0.2s; }
+                .card:nth-child(3) { animation-delay: 0.3s; }
+                .card:nth-child(4) { animation-delay: 0.4s; }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // 表单验证类
+        class FormValidator {
+            constructor() {
+                this.rules = {
+                    'proxy-port': {
+                        required: true,
+                        min: 1024,
+                        max: 65535,
+                        message: '端口号必须在1024-65535之间'
+                    },
+                    'api-port': {
+                        required: true,
+                        min: 1024,
+                        max: 65535,
+                        message: '端口号必须在1024-65535之间'
+                    }
+                };
+            }
+            
+            validateField(fieldId, value) {
+                const rule = this.rules[fieldId];
+                if (!rule) return { valid: true };
+                
+                if (rule.required && (!value || value.trim() === '')) {
+                    return { valid: false, message: '此字段为必填项' };
+                }
+                
+                const numValue = parseInt(value);
+                if (isNaN(numValue)) {
+                    return { valid: false, message: '请输入有效的数字' };
+                }
+                
+                if (rule.min && numValue < rule.min) {
+                    return { valid: false, message: `值不能小于 ${rule.min}` };
+                }
+                
+                if (rule.max && numValue > rule.max) {
+                    return { valid: false, message: `值不能大于 ${rule.max}` };
+                }
+                
+                // 检查端口冲突
+                if (fieldId === 'api-port') {
+                    const proxyPort = document.getElementById('proxy-port').value;
+                    if (proxyPort && parseInt(proxyPort) === numValue) {
+                        return { valid: false, message: 'API端口不能与代理端口相同' };
+                    }
+                }
+                
+                if (fieldId === 'proxy-port') {
+                    const apiPort = document.getElementById('api-port').value;
+                    if (apiPort && parseInt(apiPort) === numValue) {
+                        return { valid: false, message: '代理端口不能与API端口相同' };
+                    }
+                }
+                
+                return { valid: true, message: '✓ 有效' };
+            }
+            
+            updateFieldFeedback(fieldId, validation) {
+                const input = document.getElementById(fieldId);
+                const feedback = input.parentNode.querySelector('.input-feedback');
+                
+                input.classList.remove('valid', 'invalid');
+                feedback.classList.remove('success', 'error');
+                
+                if (validation.valid) {
+                    if (validation.message) {
+                        input.classList.add('valid');
+                        feedback.classList.add('success');
+                        feedback.textContent = validation.message;
+                    } else {
+                        feedback.textContent = '';
+                    }
+                } else {
+                    input.classList.add('invalid');
+                    feedback.classList.add('error');
+                    feedback.textContent = validation.message;
+                }
+            }
+            
+            setupValidation() {
+                Object.keys(this.rules).forEach(fieldId => {
+                    const input = document.getElementById(fieldId);
+                    if (!input) return;
+                    
+                    // 实时验证
+                    input.addEventListener('input', (e) => {
+                        const validation = this.validateField(fieldId, e.target.value);
+                        this.updateFieldFeedback(fieldId, validation);
+                    });
+                    
+                    // 失去焦点时验证
+                    input.addEventListener('blur', (e) => {
+                        const validation = this.validateField(fieldId, e.target.value);
+                        this.updateFieldFeedback(fieldId, validation);
+                    });
+                    
+                    // 获得焦点时清除错误状态
+                    input.addEventListener('focus', (e) => {
+                        if (e.target.classList.contains('invalid')) {
+                            e.target.classList.remove('invalid');
+                            const feedback = e.target.parentNode.querySelector('.input-feedback');
+                            feedback.classList.remove('error');
+                            feedback.textContent = '';
+                        }
+                    });
+                });
+            }
+        }
+        
+        // 键盘导航管理器
+        class KeyboardNavigationManager {
+            constructor() {
+                this.focusableElements = [];
+                this.currentFocusIndex = -1;
+                this.setupKeyboardNavigation();
+            }
+            
+            setupKeyboardNavigation() {
+                // 监听键盘事件
+                document.addEventListener('keydown', (e) => {
+                    this.handleKeyDown(e);
+                });
+                
+                // 更新可聚焦元素列表
+                this.updateFocusableElements();
+                
+                // 监听焦点变化
+                document.addEventListener('focusin', (e) => {
+                    this.updateCurrentFocusIndex(e.target);
+                });
+            }
+            
+            updateFocusableElements() {
+                this.focusableElements = Array.from(document.querySelectorAll(
+                    'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"]), .card'
+                )).filter(el => {
+                    return !el.disabled && 
+                           !el.hidden && 
+                           el.offsetParent !== null &&
+                           getComputedStyle(el).visibility !== 'hidden';
+                });
+            }
+            
+            updateCurrentFocusIndex(element) {
+                this.currentFocusIndex = this.focusableElements.indexOf(element);
+            }
+            
+            handleKeyDown(e) {
+                switch(e.key) {
+                    case 'Tab':
+                        // Tab键导航已由浏览器处理，这里只更新索引
+                        setTimeout(() => this.updateFocusableElements(), 0);
+                        break;
+                        
+                    case 'Enter':
+                    case ' ':
+                        this.handleActivation(e);
+                        break;
+                        
+                    case 'Escape':
+                        this.handleEscape(e);
+                        break;
+                        
+                    case 'ArrowDown':
+                    case 'ArrowUp':
+                        this.handleArrowNavigation(e);
+                        break;
+                }
+            }
+            
+            handleActivation(e) {
+                const target = e.target;
+                
+                // 如果是卡片，聚焦到第一个按钮
+                if (target.classList.contains('card')) {
+                    e.preventDefault();
+                    const firstButton = target.querySelector('button');
+                    if (firstButton) {
+                        firstButton.focus();
+                    }
+                }
+                
+                // 如果是状态指示器，显示详细信息
+                if (target.classList.contains('status-indicator')) {
+                    e.preventDefault();
+                    const statusText = target.getAttribute('aria-label');
+                    notifications.show(`状态详情: ${statusText}`, 'info', 2000);
+                }
+            }
+            
+            handleEscape(e) {
+                // 关闭通知
+                const notifications = document.querySelectorAll('.notification');
+                if (notifications.length > 0) {
+                    notifications.forEach(notification => {
+                        notification.click();
+                    });
+                    e.preventDefault();
+                }
+                
+                // 移除焦点
+                if (document.activeElement && document.activeElement.blur) {
+                    document.activeElement.blur();
+                }
+            }
+            
+            handleArrowNavigation(e) {
+                // 在按钮组内导航
+                const target = e.target;
+                if (target.classList.contains('btn')) {
+                    const btnGroup = target.closest('.btn-group');
+                    if (btnGroup) {
+                        e.preventDefault();
+                        const buttons = Array.from(btnGroup.querySelectorAll('.btn'));
+                        const currentIndex = buttons.indexOf(target);
+                        
+                        let nextIndex;
+                        if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                            nextIndex = (currentIndex + 1) % buttons.length;
+                        } else {
+                            nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+                        }
+                        
+                        buttons[nextIndex].focus();
+                    }
+                }
+            }
+        }
+        
+        // 可访问性增强器
+        class AccessibilityEnhancer {
+            constructor() {
+                this.setupAccessibilityFeatures();
+            }
+            
+            setupAccessibilityFeatures() {
+                // 添加焦点指示器
+                this.enhanceFocusIndicators();
+                
+                // 设置ARIA实时区域
+                this.setupLiveRegions();
+                
+                // 增强颜色对比度检测
+                this.checkColorContrast();
+            }
+            
+            enhanceFocusIndicators() {
+                // 为所有交互元素添加焦点增强
+                const interactiveElements = document.querySelectorAll('button, input, select, textarea, a, [tabindex]');
+                
+                interactiveElements.forEach(element => {
+                    element.addEventListener('focus', () => {
+                        element.setAttribute('data-focused', 'true');
+                    });
+                    
+                    element.addEventListener('blur', () => {
+                        element.removeAttribute('data-focused');
+                    });
+                });
+            }
+            
+            setupLiveRegions() {
+                // 确保状态更新能被屏幕阅读器读取
+                const statusElements = document.querySelectorAll('[aria-live]');
+                statusElements.forEach(element => {
+                    // 监听内容变化
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                                // 确保变化被屏幕阅读器注意到
+                                element.setAttribute('aria-live', 'polite');
+                            }
+                        });
+                    });
+                    
+                    observer.observe(element, {
+                        childList: true,
+                        characterData: true,
+                        subtree: true
+                    });
+                });
+            }
+            
+            checkColorContrast() {
+                // 检测用户是否偏好高对比度
+                if (window.matchMedia && window.matchMedia('(prefers-contrast: high)').matches) {
+                    document.body.classList.add('high-contrast');
+                }
+                
+                // 监听对比度偏好变化
+                if (window.matchMedia) {
+                    window.matchMedia('(prefers-contrast: high)').addEventListener('change', (e) => {
+                        if (e.matches) {
+                            document.body.classList.add('high-contrast');
+                        } else {
+                            document.body.classList.remove('high-contrast');
+                        }
+                    });
+                }
+            }
+        }
+        
+        // 性能优化管理器
+        class PerformanceOptimizer {
+            constructor() {
+                this.setupPerformanceOptimizations();
+            }
+            
+            setupPerformanceOptimizations() {
+                // 实现懒加载
+                this.setupLazyLoading();
+                
+                // 设置缓存策略
+                this.setupCaching();
+                
+                // 优化动画性能
+                this.optimizeAnimations();
+                
+                // 防抖和节流
+                this.setupDebounceThrottle();
+                
+                // 监控性能
+                this.monitorPerformance();
+            }
+            
+            setupLazyLoading() {
+                // 懒加载图片和内容
+                const lazyElements = document.querySelectorAll('[data-lazy]');
+                
+                if ('IntersectionObserver' in window) {
+                    const lazyObserver = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                const element = entry.target;
+                                
+                                // 加载图片
+                                if (element.dataset.src) {
+                                    element.src = element.dataset.src;
+                                    element.removeAttribute('data-src');
+                                }
+                                
+                                // 加载内容
+                                if (element.dataset.content) {
+                                    element.innerHTML = element.dataset.content;
+                                    element.removeAttribute('data-content');
+                                }
+                                
+                                element.classList.add('loaded');
+                                lazyObserver.unobserve(element);
+                            }
+                        });
+                    }, {
+                        rootMargin: '50px'
+                    });
+                    
+                    lazyElements.forEach(element => {
+                        lazyObserver.observe(element);
+                    });
+                }
+            }
+            
+            setupCaching() {
+                // 本地存储缓存
+                this.cache = new Map();
+                
+                // 缓存API响应
+                this.cacheApiResponse = (key, data, ttl = 300000) => { // 5分钟TTL
+                    const item = {
+                        data: data,
+                        timestamp: Date.now(),
+                        ttl: ttl
+                    };
+                    this.cache.set(key, item);
+                    
+                    // 同时存储到localStorage
+                    try {
+                        localStorage.setItem(`cache_${key}`, JSON.stringify(item));
+                    } catch (e) {
+                        console.warn('无法存储到localStorage:', e);
+                    }
+                };
+                
+                // 获取缓存数据
+                this.getCachedData = (key) => {
+                    // 先检查内存缓存
+                    let item = this.cache.get(key);
+                    
+                    // 如果内存中没有，检查localStorage
+                    if (!item) {
+                        try {
+                            const stored = localStorage.getItem(`cache_${key}`);
+                            if (stored) {
+                                item = JSON.parse(stored);
+                                this.cache.set(key, item);
+                            }
+                        } catch (e) {
+                            console.warn('无法从localStorage读取:', e);
+                        }
+                    }
+                    
+                    // 检查是否过期
+                    if (item && (Date.now() - item.timestamp) < item.ttl) {
+                        return item.data;
+                    }
+                    
+                    // 清理过期数据
+                    if (item) {
+                        this.cache.delete(key);
+                        localStorage.removeItem(`cache_${key}`);
+                    }
+                    
+                    return null;
+                };
+            }
+            
+            optimizeAnimations() {
+                // 检测用户是否偏好减少动画
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                    document.body.classList.add('reduce-motion');
+                }
+                
+                // 使用requestAnimationFrame优化动画
+                this.animationQueue = [];
+                this.isAnimating = false;
+                
+                this.queueAnimation = (callback) => {
+                    this.animationQueue.push(callback);
+                    if (!this.isAnimating) {
+                        this.processAnimationQueue();
+                    }
+                };
+                
+                this.processAnimationQueue = () => {
+                    if (this.animationQueue.length === 0) {
+                        this.isAnimating = false;
+                        return;
+                    }
+                    
+                    this.isAnimating = true;
+                    requestAnimationFrame(() => {
+                        const callback = this.animationQueue.shift();
+                        if (callback) callback();
+                        this.processAnimationQueue();
+                    });
+                };
+            }
+            
+            setupDebounceThrottle() {
+                // 防抖函数
+                this.debounce = (func, wait) => {
+                    let timeout;
+                    return function executedFunction(...args) {
+                        const later = () => {
+                            clearTimeout(timeout);
+                            func(...args);
+                        };
+                        clearTimeout(timeout);
+                        timeout = setTimeout(later, wait);
+                    };
+                };
+                
+                // 节流函数
+                this.throttle = (func, limit) => {
+                    let inThrottle;
+                    return function(...args) {
+                        if (!inThrottle) {
+                            func.apply(this, args);
+                            inThrottle = true;
+                            setTimeout(() => inThrottle = false, limit);
+                        }
+                    };
+                };
+                
+                // 应用到滚动和调整大小事件
+                window.addEventListener('scroll', this.throttle(() => {
+                    // 滚动优化逻辑
+                    this.handleScroll();
+                }, 16)); // ~60fps
+                
+                window.addEventListener('resize', this.debounce(() => {
+                    // 调整大小优化逻辑
+                    this.handleResize();
+                }, 250));
+            }
+            
+            handleScroll() {
+                // 滚动时的性能优化
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                
+                // 只在需要时更新元素
+                if (Math.abs(scrollTop - (this.lastScrollTop || 0)) > 5) {
+                    this.lastScrollTop = scrollTop;
+                    
+                    // 更新可见性相关的元素
+                    this.updateVisibleElements();
+                }
+            }
+            
+            handleResize() {
+                // 窗口调整大小时的优化
+                this.updateLayout();
+            }
+            
+            updateVisibleElements() {
+                // 只更新当前可见的元素
+                const cards = document.querySelectorAll('.card');
+                cards.forEach(card => {
+                    const rect = card.getBoundingClientRect();
+                    const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
+                    
+                    if (isVisible && !card.classList.contains('visible')) {
+                        card.classList.add('visible');
+                    }
+                });
+            }
+            
+            updateLayout() {
+                // 响应式布局更新
+                const container = document.querySelector('.container');
+                if (container) {
+                    const width = window.innerWidth;
+                    
+                    // 根据屏幕宽度调整布局
+                    if (width < 768) {
+                        container.classList.add('mobile-layout');
+                    } else {
+                        container.classList.remove('mobile-layout');
+                    }
+                }
+            }
+            
+            monitorPerformance() {
+                // 性能监控
+                if ('performance' in window) {
+                    // 监控页面加载性能
+                    window.addEventListener('load', () => {
+                        setTimeout(() => {
+                            const perfData = performance.getEntriesByType('navigation')[0];
+                            if (perfData) {
+                                console.log('页面加载性能:', {
+                                    domContentLoaded: perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart,
+                                    loadComplete: perfData.loadEventEnd - perfData.loadEventStart,
+                                    totalTime: perfData.loadEventEnd - perfData.fetchStart
+                                });
+                            }
+                        }, 0);
+                    });
+                    
+                    // 监控长任务
+                    if ('PerformanceObserver' in window) {
+                        try {
+                            const observer = new PerformanceObserver((list) => {
+                                list.getEntries().forEach((entry) => {
+                                    if (entry.duration > 50) {
+                                        console.warn('检测到长任务:', entry.duration + 'ms');
+                                    }
+                                });
+                            });
+                            observer.observe({entryTypes: ['longtask']});
+                        } catch (e) {
+                            // 某些浏览器可能不支持longtask
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Sing-box 全局代理管理系统演示界面已加载');
+            updateUptime();
+            addAnimations();
+            
+            // 初始化表单验证
+            const validator = new FormValidator();
+            validator.setupValidation();
+            
+            // 初始化键盘导航
+            const keyboardNav = new KeyboardNavigationManager();
+            
+            // 初始化可访问性增强
+            const accessibility = new AccessibilityEnhancer();
+            
+            // 初始化性能优化
+            const performanceOptimizer = new PerformanceOptimizer();
+            
+            // 将性能优化器暴露到全局，供其他功能使用
+            window.performanceOptimizer = performanceOptimizer;
+            
+            // 更新所有按钮的点击事件
+            document.querySelectorAll('.btn').forEach(button => {
+                const originalOnclick = button.getAttribute('onclick');
+                if (originalOnclick) {
+                    const match = originalOnclick.match(/showAlert\('([^']+)'\)/);
+                    if (match) {
+                        const message = match[1];
+                        button.removeAttribute('onclick');
+                        button.addEventListener('click', () => {
+                            simulateOperation(button, message);
+                        });
+                    }
+                }
+            });
+            
+            // 显示欢迎消息
+            setTimeout(() => {
+                notifications.show('欢迎使用 Sing-box 全局代理管理系统！', 'info', 5000);
+            }, 1000);
+        });
+        
+        // 每秒更新一次运行时间
+        setInterval(updateUptime, 1000);
+    </script>
+</body>
+</html>
